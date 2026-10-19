@@ -471,6 +471,7 @@ void MainWindow::updateButtonStates()
             m_saveMeshButton->hide();
         }
         if (!m_originalVertices.empty()) {
+            m_regenerateButton->setText(nullptr != m_remeshedQuads ? tr("Regenerate") : tr("Remesh"));
             m_regenerateButton->show();
             m_regenerateButton->setEnabled(true);
         } else {
@@ -654,11 +655,16 @@ void MainWindow::openModelFile(const QString& filename)
     bool objLoaded = loadObj(filename);
     QApplication::restoreOverrideCursor();
 
+    // Loading only shows the source; remeshing waits for the Remesh button.
     if (objLoaded) {
         setCurrentFilename(filename);
-
-        generateQuadMesh();
+        // The previous model's result stats no longer apply.
+        m_stageStatsLabel->hide();
+        m_quadCountLabel->hide();
+        m_nonQuadCountLabel->hide();
+        m_vertexCountLabel->hide();
     }
+    updateButtonStates();
 }
 
 void MainWindow::setCurrentFilename(const QString& filename)
