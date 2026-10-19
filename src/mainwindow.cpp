@@ -250,7 +250,7 @@ MainWindow::MainWindow()
     m_sharpEdgeDegreesWidget->setItemName(tr("Sharp Edge"));
     m_sharpEdgeDegreesWidget->setRange(30.0, 180.0);
     m_sharpEdgeDegreesWidget->setValue(m_sharpEdgeDegrees);
-    m_sharpEdgeDegreesWidget->setToolTip(tr("Dihedral angle threshold (degrees). Edges sharper than this are preserved as feature edges."));
+    m_sharpEdgeDegreesWidget->setToolTip(tr("<b>Sharp Edge</b> (degrees)<br>Angle between the two faces meeting at an edge. Edges folded this tight or tighter are kept as hard edges through decimation, the isotropic remesh and the quad layout.<br><br>Lower: only very sharp creases are kept.<br>Higher: gentle bends count too (hard-surface models).<br>180: edge detection off."));
     connect(m_sharpEdgeDegreesWidget, &FloatNumberWidget::valueChanged, [=](float value) {
         m_sharpEdgeDegrees = value;
     });
@@ -259,7 +259,7 @@ MainWindow::MainWindow()
     m_smoothNormalDegreesWidget->setItemName(tr("Smooth Normal"));
     m_smoothNormalDegreesWidget->setRange(0.0, 180.0);
     m_smoothNormalDegreesWidget->setValue(m_smoothNormalDegrees);
-    m_smoothNormalDegreesWidget->setToolTip(tr("Smooth normal angle threshold (degrees). 0 = faceted (current behavior), larger values produce a smoother surface during remeshing by respecting the original vertex normals."));
+    m_smoothNormalDegreesWidget->setToolTip(tr("<b>Smooth Normal</b> (degrees)<br>0: new points from edge splits go at the straight midpoint, so the surface stays faceted like the input.<br>Above 0: new points follow a smooth surface fitted to the vertex normals, so faceted or low-poly models come out rounder.<br><br>The value limits which faces are blended into a vertex normal; bends sharper than this stay crisp."));
     connect(m_smoothNormalDegreesWidget, &FloatNumberWidget::valueChanged, [=](float value) {
         m_smoothNormalDegrees = value;
     });
@@ -268,7 +268,7 @@ MainWindow::MainWindow()
     m_adaptivityWidget->setItemName(tr("Adaptivity"));
     m_adaptivityWidget->setRange(0.0, 1.0);
     m_adaptivityWidget->setValue(m_adaptivity);
-    m_adaptivityWidget->setToolTip(tr("Curvature-adaptive quad density. 0 = uniform, 1 = full adaptivity (finer quads in high-curvature areas)."));
+    m_adaptivityWidget->setToolTip(tr("<b>Adaptivity</b><br>How density is spread over the model.<br>0: same-size triangles everywhere.<br>1: smaller triangles on curved, detailed areas and bigger ones on flat areas (about 0.35x to 3x the base size).<br><br>The total budget stays the same, so it moves detail around rather than adding it."));
     connect(m_adaptivityWidget, &FloatNumberWidget::valueChanged, [=](float value) {
         m_adaptivity = value;
     });
@@ -277,7 +277,7 @@ MainWindow::MainWindow()
     m_anisotropyWidget->setItemName(tr("Anisotropy"));
     m_anisotropyWidget->setRange(0.0, 1.0);
     m_anisotropyWidget->setValue(m_anisotropy);
-    m_anisotropyWidget->setToolTip(tr("Curvature-adaptive quad elongation. 0 = square quads, 1 = quads stretched along the flatter direction (long on tubes and ridges, square on spheres)."));
+    m_anisotropyWidget->setToolTip(tr("<b>Anisotropy</b><br>How stretched the quads may be.<br>0: roughly square quads.<br>1: quads stretch along the direction the surface curves least (long on tubes and ridges, square on spheres). The stretch is capped.<br><br>Only affects the quad stage, not the isotropic mesh."));
     connect(m_anisotropyWidget, &FloatNumberWidget::valueChanged, [=](float value) {
         m_anisotropy = value;
     });
@@ -286,6 +286,7 @@ MainWindow::MainWindow()
     m_targetQuadCountWidget->setItemName(tr("Target Quads"));
     m_targetQuadCountWidget->setRange(1000, 1000000);
     m_targetQuadCountWidget->setValue(m_targetQuadCount);
+    m_targetQuadCountWidget->setToolTip(tr("<b>Target Quads</b><br>Main density control. The isotropic stage aims for twice this many triangles, which sets the base edge length from the model's surface area.<br><br>The final quad count lands near this number, not exactly on it."));
     connect(m_targetQuadCountWidget, &IntNumberWidget::valueChanged, [=](int value) {
         m_targetQuadCount = value;
     });
@@ -294,6 +295,7 @@ MainWindow::MainWindow()
     m_targetScalingWidget->setItemName(tr("Edge Scaling"));
     m_targetScalingWidget->setRange(1.0, 4.0);
     m_targetScalingWidget->setValue(m_targetScaling);
+    m_targetScalingWidget->setToolTip(tr("<b>Edge Scaling</b><br>Multiplies the quad grid size in the final quad stage. Higher gives bigger, fewer quads from the same isotropic mesh.<br><br>Only affects the quad stage, not the isotropic mesh."));
     connect(m_targetScalingWidget, &FloatNumberWidget::valueChanged, [=](float value) {
         m_targetScaling = value;
     });
