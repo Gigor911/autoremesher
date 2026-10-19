@@ -24,6 +24,7 @@
 #include <QDebug>
 #include <QFontMetrics>
 #include <QGuiApplication>
+#include <QStyle>
 
 // Green (primary accent)
 // 0xaa, 0xeb, 0xc4
@@ -214,6 +215,21 @@ class NumberInputArrowFilter : public QObject {
 public:
     using QObject::QObject;
 
+    // The arrows are hidden by collapsing them to zero width in the stylesheet
+    // rather than with QAbstractSpinBox::NoButtons: under a stylesheet, Qt 6
+    // shrinks the edit field to 1px when there are no buttons, clipping the value.
+    static void setArrowsHidden(QAbstractSpinBox* spinBox, bool hidden)
+    {
+        if (spinBox->property("arrowsHidden").toBool() == hidden)
+            return;
+        spinBox->setProperty("arrowsHidden", hidden);
+        spinBox->style()->unpolish(spinBox);
+        spinBox->style()->polish(spinBox);
+        QEvent styleChange(QEvent::StyleChange);
+        QApplication::sendEvent(spinBox, &styleChange);
+        spinBox->update();
+    }
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override
     {
@@ -222,12 +238,12 @@ protected:
             switch (event->type()) {
             case QEvent::Enter:
             case QEvent::FocusIn:
-                spinBox->setButtonSymbols(QAbstractSpinBox::UpDownArrows);
+                setArrowsHidden(spinBox, false);
                 break;
             case QEvent::Leave:
             case QEvent::FocusOut:
                 if (!spinBox->hasFocus() && !spinBox->underMouse())
-                    spinBox->setButtonSymbols(QAbstractSpinBox::NoButtons);
+                    setArrowsHidden(spinBox, true);
                 break;
             default:
                 break;
@@ -245,7 +261,8 @@ void Theme::initNumberInput(QAbstractSpinBox* spinBox)
     spinBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     spinBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     spinBox->setKeyboardTracking(false);
-    spinBox->setButtonSymbols(QAbstractSpinBox::NoButtons);
+    spinBox->setButtonSymbols(QAbstractSpinBox::UpDownArrows);
+    spinBox->setProperty("arrowsHidden", true);
     spinBox->setAttribute(Qt::WA_Hover);
     spinBox->installEventFilter(new NumberInputArrowFilter(spinBox));
 }
@@ -321,6 +338,12 @@ QString Theme::compactStylesheet()
         "  color: %2;"
         "  selection-background-color: %3;"
         "  selection-color: #191919;"
+        "}"
+        "QAbstractSpinBox[arrowsHidden=\"true\"]::up-button,"
+        "QAbstractSpinBox[arrowsHidden=\"true\"]::down-button {"
+        "  width: 0px;"
+        "  border: none;"
+        "  image: none;"
         "}"
         "QAbstractSpinBox:hover {"
         "  border-color: #5c6c75;"
