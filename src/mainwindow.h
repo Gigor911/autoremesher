@@ -85,6 +85,8 @@ signals:
 
 protected:
     void closeEvent(QCloseEvent* event);
+    void dragEnterEvent(QDragEnterEvent* event);
+    void dropEvent(QDropEvent* event);
     void showEvent(QShowEvent* event);
 private slots:
     void showSupporters();
@@ -96,6 +98,8 @@ private slots:
     void showAbout();
     void updateTitle();
     void loadModel();
+    void openModelFile(const QString& filename);
+    bool confirmDiscardChanges();
     void saveMesh();
     bool savingIsotropicMesh() const;
     QString stageStatsText() const;

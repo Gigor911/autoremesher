@@ -32,7 +32,10 @@
 #include <QHBoxLayout>
 #include <QImage>
 #include <QLabel>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QTextBrowser>
@@ -444,6 +447,7 @@ MainWindow::MainWindow()
     centralWidget->setLayout(mainLayout);
 
     setCentralWidget(centralWidget);
+    setAcceptDrops(true);
     updateTitle();
 }
 
@@ -575,15 +579,8 @@ bool MainWindow::loadObj(const QString& filename)
 
 void MainWindow::loadModel()
 {
-    if (!m_saved) {
-        QMessageBox::StandardButton answer = QMessageBox::question(this,
-            APP_NAME,
-            tr("Do you really want to load another file and lose the unsaved changes?"),
-            QMessageBox::Yes | QMessageBox::No,
-            QMessageBox::No);
-        if (answer != QMessageBox::Yes)
-            return;
-    }
+    if (!confirmDiscardChanges())
+        return;
 
     if (m_inProgress) {
         QMessageBox::StandardButton answer = QMessageBox::question(this,
@@ -601,6 +598,56 @@ void MainWindow::loadModel()
     if (filename.isEmpty())
         return;
 
+    openModelFile(filename);
+}
+
+static QString droppedObjFile(const QMimeData* mimeData)
+{
+    if (nullptr == mimeData || !mimeData->hasUrls())
+        return QString();
+    for (const QUrl& url : mimeData->urls()) {
+        if (url.isLocalFile() && url.toLocalFile().endsWith(".obj", Qt::CaseInsensitive))
+            return url.toLocalFile();
+    }
+    return QString();
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (!droppedObjFile(event->mimeData()).isEmpty())
+        event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent* event)
+{
+    const QString filename = droppedObjFile(event->mimeData());
+    if (filename.isEmpty())
+        return;
+    event->acceptProposedAction();
+    // Same rule as the Open button, which is disabled while a remesh runs.
+    if (nullptr != m_quadMeshGenerator)
+        return;
+    if (!confirmDiscardChanges())
+        return;
+    openModelFile(filename);
+}
+
+bool MainWindow::confirmDiscardChanges()
+{
+    if (!m_saved) {
+        QMessageBox::StandardButton answer = QMessageBox::question(this,
+            APP_NAME,
+            tr("Do you really want to load another file and lose the unsaved changes?"),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+        if (answer != QMessageBox::Yes)
+            return false;
+    }
+    return true;
+}
+
+void MainWindow::openModelFile(const QString& filename)
+{
     QApplication::setOverrideCursor(Qt::WaitCursor);
     bool objLoaded = loadObj(filename);
     QApplication::restoreOverrideCursor();
