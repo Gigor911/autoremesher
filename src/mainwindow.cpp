@@ -335,6 +335,10 @@ MainWindow::MainWindow()
     //controlsLayout->addWidget(m_modelTypeSelectBox);
 
     // Result mesh stats (hidden until a mesh is generated)
+    m_stageStatsLabel = new QLabel(this);
+    m_stageStatsLabel->setStyleSheet("color: #ffffff; font-size: 11px; padding: 2px 0;");
+    m_stageStatsLabel->hide();
+
     m_quadCountLabel = new QLabel(this);
     m_quadCountLabel->setStyleSheet("color: #ffffff; font-size: 11px; padding: 2px 0;");
     m_quadCountLabel->hide();
@@ -371,6 +375,7 @@ MainWindow::MainWindow()
     controlsLayout->addStretch();
 
     controlsLayout->addWidget(m_progressStatusLabel);
+    controlsLayout->addWidget(m_stageStatsLabel);
     controlsLayout->addWidget(m_quadCountLabel);
     controlsLayout->addWidget(m_nonQuadCountLabel);
     controlsLayout->addWidget(m_vertexCountLabel);
@@ -632,6 +637,22 @@ static bool writeObj(const QString& filename,
         stream << "\n";
     }
     return true;
+}
+
+QString MainWindow::stageStatsText() const
+{
+    // Vertex and face counts of every step the remesh went through, so the
+    // reduction from the source to the isotropic mesh is visible at a glance.
+    auto line = [](const QString& name, size_t vertices, size_t triangles) {
+        return QString("%1: %2 tris, %3 verts").arg(name).arg(triangles).arg(vertices);
+    };
+    QStringList lines;
+    lines << line(tr("Source"), m_originalVertices.size(), m_originalTriangles.size());
+    if (!m_decimatedTriangles.empty())
+        lines << line(tr("Decimated"), m_decimatedVertices.size(), m_decimatedTriangles.size());
+    if (!m_isotropicTriangles.empty())
+        lines << line(tr("Isotropic"), m_isotropicVertices.size(), m_isotropicTriangles.size());
+    return lines.join("\n");
 }
 
 bool MainWindow::savingIsotropicMesh() const
@@ -1135,6 +1156,7 @@ void MainWindow::generateQuadMesh()
     m_saved = true;
     m_inProgress = true;
 
+    m_stageStatsLabel->hide();
     m_quadCountLabel->hide();
     m_nonQuadCountLabel->hide();
     m_vertexCountLabel->hide();
@@ -1207,7 +1229,10 @@ void MainWindow::quadMeshReady()
         }
         size_t vertexCount = m_remeshedVertices->size();
 
+        const QString stageStats = stageStatsText();
+
         if (m_headlessMode) {
+            std::cout << stageStats.toStdString() << std::endl;
             double elapsed = m_headlessTimer.elapsed() / 1000.0;
             saveMeshToFile(m_headlessOutputPath);
             if (!m_headlessIsotropicOutputPath.isEmpty())
@@ -1220,6 +1245,8 @@ void MainWindow::quadMeshReady()
         m_nonQuadCountLabel->setText(QString("Non-quads: %1").arg(nonQuadCount));
         m_vertexCountLabel->setText(QString("Vertices: %1").arg(vertexCount));
 
+        m_stageStatsLabel->setText(stageStats + "\nRemeshed:");
+        m_stageStatsLabel->show();
         m_quadCountLabel->show();
         m_nonQuadCountLabel->show();
         m_vertexCountLabel->show();

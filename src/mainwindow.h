@@ -98,6 +98,7 @@ private slots:
     void loadModel();
     void saveMesh();
     bool savingIsotropicMesh() const;
+    QString stageStatsText() const;
     void updateSaveButtonText();
     bool loadObj(const QString& filename);
     void setCurrentFilename(const QString& filename);
@@ -158,6 +159,7 @@ private:
     FloatNumberWidget* m_smoothNormalDegreesWidget = nullptr;
     FloatNumberWidget* m_adaptivityWidget = nullptr;
     FloatNumberWidget* m_anisotropyWidget = nullptr;
+    QLabel* m_stageStatsLabel = nullptr;
     QLabel* m_quadCountLabel = nullptr;
     QLabel* m_nonQuadCountLabel = nullptr;
     QLabel* m_vertexCountLabel = nullptr;
