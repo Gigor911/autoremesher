@@ -320,6 +320,11 @@ MainWindow::MainWindow()
     connect(saveMeshButton, &QPushButton::clicked, this, &MainWindow::saveMesh);
     m_saveMeshButton = saveMeshButton;
 
+    m_resetOptionsButton = new QPushButton(tr("Reset to Defaults"));
+    m_resetOptionsButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_resetOptionsButton->setToolTip(tr("Set every slider back to its default value. Takes effect on the next Remesh."));
+    connect(m_resetOptionsButton, &QPushButton::clicked, this, &MainWindow::resetOptions);
+
     QPushButton* regenerateButton = new QPushButton(tr("Regenerate"));
     regenerateButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     regenerateButton->hide();
@@ -337,6 +342,8 @@ MainWindow::MainWindow()
     controlsLayout->addWidget(m_anisotropyWidget);
     controlsLayout->addWidget(m_targetQuadCountWidget);
     controlsLayout->addWidget(m_targetScalingWidget);
+    controlsLayout->addSpacing(4);
+    controlsLayout->addWidget(m_resetOptionsButton);
     //controlsLayout->addWidget(m_modelTypeSelectBox);
 
     // Result mesh stats (hidden until a mesh is generated)
@@ -463,6 +470,7 @@ void MainWindow::updateButtonStates()
         m_smoothNormalDegreesWidget->setEnabled(true);
         m_adaptivityWidget->setEnabled(true);
         m_anisotropyWidget->setEnabled(true);
+        m_resetOptionsButton->setEnabled(true);
         //m_modelTypeSelectBox->setEnabled(true);
         if (nullptr != m_remeshedQuads) {
             updateSaveButtonText();
@@ -489,6 +497,7 @@ void MainWindow::updateButtonStates()
         m_smoothNormalDegreesWidget->setDisabled(true);
         m_adaptivityWidget->setDisabled(true);
         m_anisotropyWidget->setDisabled(true);
+        m_resetOptionsButton->setEnabled(false);
         //m_modelTypeSelectBox->setDisabled(true);
     }
 
@@ -719,6 +728,17 @@ bool MainWindow::savingIsotropicMesh() const
 void MainWindow::updateSaveButtonText()
 {
     m_saveMeshButton->setText(savingIsotropicMesh() ? tr("Save Isotropic") : tr("Save"));
+}
+
+void MainWindow::resetOptions()
+{
+    // The widgets emit valueChanged, which updates the matching members.
+    m_sharpEdgeDegreesWidget->setValue(defaultSharpEdgeDegrees);
+    m_smoothNormalDegreesWidget->setValue(defaultSmoothNormalDegrees);
+    m_adaptivityWidget->setValue(defaultAdaptivity);
+    m_anisotropyWidget->setValue(defaultAnisotropy);
+    m_targetQuadCountWidget->setValue(defaultTargetQuadCount);
+    m_targetScalingWidget->setValue(defaultTargetScaling);
 }
 
 void MainWindow::saveMesh()
