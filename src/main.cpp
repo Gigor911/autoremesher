@@ -42,6 +42,7 @@
 struct HeadlessParams {
     QString inputPath;
     QString outputPath;
+    QString isotropicOutputPath;
     QString reportPath;
     int targetQuads = 50000;
     double edgeScaling = 1.0;
@@ -56,6 +57,8 @@ static HeadlessParams parseHeadlessArgs(QCommandLineParser& parser)
     HeadlessParams params;
     params.inputPath = parser.value("input");
     params.outputPath = parser.value("output");
+    if (parser.isSet("isotropic-output"))
+        params.isotropicOutputPath = parser.value("isotropic-output");
     if (parser.isSet("report"))
         params.reportPath = parser.value("report");
     if (parser.isSet("target-quads"))
@@ -100,6 +103,11 @@ int main(int argc, char** argv)
         QCoreApplication::translate("main", "Output .obj file path for the remeshed result"),
         QCoreApplication::translate("main", "output.obj"));
     parser.addOption(outputOption);
+
+    QCommandLineOption isotropicOutputOption(QStringList { "isotropic-output" },
+        QCoreApplication::translate("main", "Also save the intermediate isotropic triangle mesh to this .obj path"),
+        QCoreApplication::translate("main", "isotropic.obj"));
+    parser.addOption(isotropicOutputOption);
 
     QCommandLineOption reportOption(QStringList { "report" },
         QCoreApplication::translate("main", "Path to write a report file with stats (quads, non-quads, vertices, time). If omitted, no report file is written."),
@@ -221,6 +229,7 @@ int main(int argc, char** argv)
             params.targetQuads, params.edgeScaling,
             params.sharpEdgeDegrees, params.smoothNormalDegrees,
             params.adaptivity, params.anisotropy);
+        mainWindow->setHeadlessIsotropicOutputPath(params.isotropicOutputPath);
         mainWindow->runHeadless();
 
         return app.exec();

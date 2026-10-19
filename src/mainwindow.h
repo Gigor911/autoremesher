@@ -76,7 +76,9 @@ public:
         double adaptivity,
         double anisotropy);
     void runHeadless();
+    void setHeadlessIsotropicOutputPath(const QString& outputPath);
     void saveMeshToFile(const QString& filename);
+    void saveIsotropicMeshToFile(const QString& filename);
 
 signals:
     void headlessFinished(size_t quadCount, size_t nonQuadCount, size_t vertexCount, double elapsedSeconds);
@@ -95,6 +97,8 @@ private slots:
     void updateTitle();
     void loadModel();
     void saveMesh();
+    bool savingIsotropicMesh() const;
+    void updateSaveButtonText();
     bool loadObj(const QString& filename);
     void setCurrentFilename(const QString& filename);
     void checkRenderQueue();
@@ -119,6 +123,7 @@ private:
     bool m_saved = true;
     bool m_headlessMode = false;
     QString m_headlessOutputPath;
+    QString m_headlessIsotropicOutputPath;
     QElapsedTimer m_headlessTimer;
     int m_targetQuadCount = 50000;
     float m_targetScaling = 1.0;

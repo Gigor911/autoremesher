@@ -454,6 +454,7 @@ void MainWindow::updateButtonStates()
         m_anisotropyWidget->setEnabled(true);
         //m_modelTypeSelectBox->setEnabled(true);
         if (nullptr != m_remeshedQuads) {
+            updateSaveButtonText();
             m_saveMeshButton->show();
         } else {
             m_saveMeshButton->hide();
@@ -612,12 +613,46 @@ void MainWindow::setCurrentFilename(const QString& filename)
     updateTitle();
 }
 
+static bool writeObj(const QString& filename,
+    const std::vector<AutoRemesher::Vector3>& vertices,
+    const std::vector<std::vector<size_t>>& faces)
+{
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return false;
+    QTextStream stream(&file);
+    stream << "# " << APP_NAME << " " << APP_HUMAN_VER << "\n";
+    stream << "# " << APP_HOMEPAGE_URL << "\n";
+    for (const auto& it : vertices)
+        stream << "v " << it.x() << " " << it.y() << " " << it.z() << "\n";
+    for (const auto& face : faces) {
+        stream << "f";
+        for (size_t index : face)
+            stream << " " << (1 + index);
+        stream << "\n";
+    }
+    return true;
+}
+
+bool MainWindow::savingIsotropicMesh() const
+{
+    return PreviewIsotropic == m_previewMode && !m_isotropicTriangles.empty();
+}
+
+void MainWindow::updateSaveButtonText()
+{
+    m_saveMeshButton->setText(savingIsotropicMesh() ? tr("Save Isotropic") : tr("Save"));
+}
+
 void MainWindow::saveMesh()
 {
     if (nullptr == m_remeshedVertices || nullptr == m_remeshedQuads)
         return;
 
-    QString filename = QFileDialog::getSaveFileName(this, QString(), QString(),
+    // Save what is on screen: the triangulated isotropic stage while that view
+    // is active, the quad result otherwise.
+    const bool isotropic = savingIsotropicMesh();
+    QString filename = QFileDialog::getSaveFileName(this, isotropic ? tr("Save Isotropic Mesh") : QString(), QString(),
         tr("Wavefront (*.obj)"));
     if (filename.isEmpty()) {
         return;
@@ -626,22 +661,10 @@ void MainWindow::saveMesh()
     if (!filename.endsWith(".obj"))
         filename += ".obj";
 
-    QFile file(filename);
-    if (file.open(QIODevice::WriteOnly)) {
-        QTextStream stream(&file);
-        stream << "# " << APP_NAME << " " << APP_HUMAN_VER << "\n";
-        stream << "# " << APP_HOMEPAGE_URL << "\n";
-        for (std::vector<AutoRemesher::Vector3>::const_iterator it = m_remeshedVertices->begin(); it != m_remeshedVertices->end(); ++it) {
-            stream << "v " << (*it).x() << " " << (*it).y() << " " << (*it).z() << "\n";
-        }
-        for (std::vector<std::vector<size_t>>::const_iterator it = m_remeshedQuads->begin(); it != m_remeshedQuads->end(); ++it) {
-            stream << "f";
-            for (std::vector<size_t>::const_iterator subIt = (*it).begin(); subIt != (*it).end(); ++subIt) {
-                stream << " " << (1 + *subIt);
-            }
-            stream << "\n";
-        }
-    }
+    if (isotropic)
+        saveIsotropicMeshToFile(filename);
+    else
+        saveMeshToFile(filename);
 }
 
 void MainWindow::updateTitle()
@@ -661,6 +684,7 @@ void MainWindow::switchToSourceView()
     m_previewRemeshButton->setChecked(false);
     if (m_sourceRenderMesh)
         m_modelRenderWidget->updateMesh(new ModelShaderMesh(*m_sourceRenderMesh));
+    updateSaveButtonText();
 }
 
 void MainWindow::switchToDecimateView()
@@ -673,6 +697,7 @@ void MainWindow::switchToDecimateView()
     m_previewRemeshButton->setChecked(false);
     if (m_decimatedRenderMesh)
         m_modelRenderWidget->updateMesh(new ModelShaderMesh(*m_decimatedRenderMesh));
+    updateSaveButtonText();
 }
 
 void MainWindow::switchToIsotropicView()
@@ -685,6 +710,7 @@ void MainWindow::switchToIsotropicView()
     m_previewRemeshButton->setChecked(false);
     if (m_isotropicRenderMesh)
         m_modelRenderWidget->updateMesh(new ModelShaderMesh(*m_isotropicRenderMesh));
+    updateSaveButtonText();
 }
 
 void MainWindow::switchToParamView()
@@ -697,6 +723,7 @@ void MainWindow::switchToParamView()
     m_previewRemeshButton->setChecked(false);
     if (m_paramRenderMesh)
         m_modelRenderWidget->updateMesh(new ModelShaderMesh(*m_paramRenderMesh));
+    updateSaveButtonText();
 }
 
 void MainWindow::switchToRemeshView()
@@ -709,6 +736,7 @@ void MainWindow::switchToRemeshView()
     m_previewRemeshButton->setChecked(true);
     if (m_remeshRenderMesh)
         m_modelRenderWidget->updateMesh(new ModelShaderMesh(*m_remeshRenderMesh));
+    updateSaveButtonText();
 }
 
 void MainWindow::updateProgress(float progress)
@@ -1004,6 +1032,7 @@ void MainWindow::previewMeshesReady()
     m_previewRemeshButton->setChecked(true);
     m_modelRenderWidget->updateMesh(
         m_remeshRenderMesh ? new ModelShaderMesh(*m_remeshRenderMesh) : new ModelShaderMesh);
+    updateSaveButtonText();
 }
 
 void MainWindow::setHeadlessParams(const QString& inputPath, const QString& outputPath,
@@ -1028,22 +1057,22 @@ void MainWindow::saveMeshToFile(const QString& filename)
     if (nullptr == m_remeshedVertices || nullptr == m_remeshedQuads)
         return;
 
-    QFile file(filename);
-    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream stream(&file);
-        stream << "# " << APP_NAME << " " << APP_HUMAN_VER << "\n";
-        stream << "# " << APP_HOMEPAGE_URL << "\n";
-        for (std::vector<AutoRemesher::Vector3>::const_iterator it = m_remeshedVertices->begin(); it != m_remeshedVertices->end(); ++it) {
-            stream << "v " << (*it).x() << " " << (*it).y() << " " << (*it).z() << "\n";
-        }
-        for (std::vector<std::vector<size_t>>::const_iterator it = m_remeshedQuads->begin(); it != m_remeshedQuads->end(); ++it) {
-            stream << "f";
-            for (std::vector<size_t>::const_iterator subIt = (*it).begin(); subIt != (*it).end(); ++subIt) {
-                stream << " " << (1 + *subIt);
-            }
-            stream << "\n";
-        }
-    }
+    if (!writeObj(filename, *m_remeshedVertices, *m_remeshedQuads))
+        std::cerr << "Error: Failed to write " << filename.toStdString() << std::endl;
+}
+
+void MainWindow::saveIsotropicMeshToFile(const QString& filename)
+{
+    if (m_isotropicVertices.empty() || m_isotropicTriangles.empty())
+        return;
+
+    if (!writeObj(filename, m_isotropicVertices, m_isotropicTriangles))
+        std::cerr << "Error: Failed to write " << filename.toStdString() << std::endl;
+}
+
+void MainWindow::setHeadlessIsotropicOutputPath(const QString& outputPath)
+{
+    m_headlessIsotropicOutputPath = outputPath;
 }
 
 void MainWindow::runHeadless()
@@ -1181,6 +1210,8 @@ void MainWindow::quadMeshReady()
         if (m_headlessMode) {
             double elapsed = m_headlessTimer.elapsed() / 1000.0;
             saveMeshToFile(m_headlessOutputPath);
+            if (!m_headlessIsotropicOutputPath.isEmpty())
+                saveIsotropicMeshToFile(m_headlessIsotropicOutputPath);
             emit headlessFinished(quadCount, nonQuadCount, vertexCount, elapsed);
             return;
         }
