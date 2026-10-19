@@ -152,6 +152,7 @@ private:
     QPushButton* m_previewParamButton = nullptr;
     QPushButton* m_previewRemeshButton = nullptr;
     PreviewMode m_previewMode = PreviewSource;
+    PreviewMode m_selectedPreviewMode = PreviewRemesh;
     IntNumberWidget* m_targetQuadCountWidget = nullptr;
     FloatNumberWidget* m_targetScalingWidget = nullptr;
     //QComboBox *m_modelTypeSelectBox = nullptr;

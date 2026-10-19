@@ -514,6 +514,7 @@ bool MainWindow::loadObj(const QString& filename)
     }
 
     // Reset preview state for new model
+    m_selectedPreviewMode = PreviewRemesh;
     delete m_sourceRenderMesh;
     m_sourceRenderMesh = nullptr;
     delete m_decimatedRenderMesh;
@@ -698,6 +699,7 @@ void MainWindow::updateTitle()
 void MainWindow::switchToSourceView()
 {
     m_previewMode = PreviewSource;
+    m_selectedPreviewMode = PreviewSource;
     m_previewSourceButton->setChecked(true);
     m_previewDecimateButton->setChecked(false);
     m_previewIsotropicButton->setChecked(false);
@@ -711,6 +713,7 @@ void MainWindow::switchToSourceView()
 void MainWindow::switchToDecimateView()
 {
     m_previewMode = PreviewDecimate;
+    m_selectedPreviewMode = PreviewDecimate;
     m_previewSourceButton->setChecked(false);
     m_previewDecimateButton->setChecked(true);
     m_previewIsotropicButton->setChecked(false);
@@ -724,6 +727,7 @@ void MainWindow::switchToDecimateView()
 void MainWindow::switchToIsotropicView()
 {
     m_previewMode = PreviewIsotropic;
+    m_selectedPreviewMode = PreviewIsotropic;
     m_previewSourceButton->setChecked(false);
     m_previewDecimateButton->setChecked(false);
     m_previewIsotropicButton->setChecked(true);
@@ -737,6 +741,7 @@ void MainWindow::switchToIsotropicView()
 void MainWindow::switchToParamView()
 {
     m_previewMode = PreviewParam;
+    m_selectedPreviewMode = PreviewParam;
     m_previewSourceButton->setChecked(false);
     m_previewDecimateButton->setChecked(false);
     m_previewIsotropicButton->setChecked(false);
@@ -750,6 +755,7 @@ void MainWindow::switchToParamView()
 void MainWindow::switchToRemeshView()
 {
     m_previewMode = PreviewRemesh;
+    m_selectedPreviewMode = PreviewRemesh;
     m_previewSourceButton->setChecked(false);
     m_previewDecimateButton->setChecked(false);
     m_previewIsotropicButton->setChecked(false);
@@ -995,9 +1001,16 @@ void MainWindow::renderMeshReady()
 
         // Now generate isotropic (voxel) and param preview meshes
         generatePreviewMeshes();
+
+        // Another view stays on screen until previewMeshesReady() rebuilds it.
+        if (PreviewRemesh != m_selectedPreviewMode) {
+            delete renderMesh;
+            renderMesh = nullptr;
+        }
     }
 
-    m_modelRenderWidget->updateMesh(renderMesh);
+    if (nullptr != renderMesh)
+        m_modelRenderWidget->updateMesh(renderMesh);
 
     updateButtonStates();
 
@@ -1044,16 +1057,23 @@ void MainWindow::previewMeshesReady()
     m_previewParamButton->setEnabled(true);
     m_previewRemeshButton->setEnabled(true);
 
-    // Show the remesh result by default (master copy stays in m_remeshRenderMesh)
-    m_previewMode = PreviewRemesh;
-    m_previewSourceButton->setChecked(false);
-    m_previewDecimateButton->setChecked(false);
-    m_previewIsotropicButton->setChecked(false);
-    m_previewParamButton->setChecked(false);
-    m_previewRemeshButton->setChecked(true);
-    m_modelRenderWidget->updateMesh(
-        m_remeshRenderMesh ? new ModelShaderMesh(*m_remeshRenderMesh) : new ModelShaderMesh);
-    updateSaveButtonText();
+    // Return to the view the user picked before regenerating; a new model starts
+    // on the remesh result (master copy stays in m_remeshRenderMesh).
+    const PreviewMode selected = m_selectedPreviewMode;
+    if (PreviewSource == selected && nullptr != m_sourceRenderMesh)
+        switchToSourceView();
+    else if (PreviewDecimate == selected && nullptr != m_decimatedRenderMesh)
+        switchToDecimateView();
+    else if (PreviewIsotropic == selected && nullptr != m_isotropicRenderMesh)
+        switchToIsotropicView();
+    else if (PreviewParam == selected && nullptr != m_paramRenderMesh)
+        switchToParamView();
+    else if (nullptr != m_remeshRenderMesh)
+        switchToRemeshView();
+    else
+        m_modelRenderWidget->updateMesh(new ModelShaderMesh);
+    // A view missing from this run (e.g. no decimation) is still the choice for the next one.
+    m_selectedPreviewMode = selected;
 }
 
 void MainWindow::setHeadlessParams(const QString& inputPath, const QString& outputPath,
